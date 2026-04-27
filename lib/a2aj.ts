@@ -58,10 +58,15 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 2, backoffMs = 1000
   throw lastErr;
 }
 
-export async function fetchCase(citation: string): Promise<A2AJFetchResult | null> {
+export type DocType = 'cases' | 'laws';
+
+export async function fetchCase(
+  citation: string,
+  docType: DocType = 'cases',
+): Promise<A2AJFetchResult | null> {
   const url = new URL(`${BASE}/fetch`);
   url.searchParams.set('citation', citation);
-  url.searchParams.set('doc_type', 'cases');
+  url.searchParams.set('doc_type', docType);
 
   const data = await withRetry(async () => {
     const res = await fetch(url.toString());
@@ -77,6 +82,7 @@ export async function fetchCase(citation: string): Promise<A2AJFetchResult | nul
 export async function searchCases(opts: {
   query: string;
   searchType?: 'full_text' | 'name';
+  docType?: DocType;
   datasets?: string[];
   size?: number;
   startDate?: string;
@@ -85,7 +91,7 @@ export async function searchCases(opts: {
   const url = new URL(`${BASE}/search`);
   url.searchParams.set('query', opts.query);
   url.searchParams.set('search_type', opts.searchType ?? 'full_text');
-  url.searchParams.set('doc_type', 'cases');
+  url.searchParams.set('doc_type', opts.docType ?? 'cases');
   if (opts.size) url.searchParams.set('size', String(opts.size));
   if (opts.datasets && opts.datasets.length > 0) {
     url.searchParams.set('dataset', opts.datasets.join(','));

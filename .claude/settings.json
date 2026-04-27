@@ -1,6 +1,8 @@
 {
+  "enableAllProjectMcpServers": true,
   "permissions": {
     "allow": [
+      "mcp__a2aj",
       "Bash(curl *)",
       "Bash(node *)",
       "Bash(npm *)",
@@ -33,6 +35,8 @@
       "Bash(pwd)",
       "Bash(rm /tmp/lr-*)",
       "Bash(rm -f /tmp/lr-*)",
+      "Bash(rm C:/Users/Matha/AppData/Local/Temp/lr-*)",
+      "Bash(rm -f C:/Users/Matha/AppData/Local/Temp/lr-*)",
       "WebSearch",
       "WebFetch",
       "Write",

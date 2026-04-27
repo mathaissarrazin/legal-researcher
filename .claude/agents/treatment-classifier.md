@@ -1,7 +1,7 @@
 ---
 name: treatment-classifier
 description: For ONE target case, find citing cases and classify their treatment as followed/applied/distinguished/criticized/neutral
-tools: Bash
+tools: mcp__a2aj__search, mcp__a2aj__locate_in_case
 model: sonnet
 ---
 
@@ -11,34 +11,21 @@ You find subsequent cases that cite your target and classify how each citing cas
 
 ## How to find citing cases
 
-A2AJ has no formal citator. Build forward note-up via two complementary searches:
+A2AJ has no formal citator. Build forward note-up via two complementary `mcp__a2aj__search` calls:
 
-1. **Phrase search on the neutral citation:**
-   ```bash
-   curl -sG "https://api.a2aj.ca/search" \
-     --data-urlencode 'query="2014 SCC 71"' \
-     --data-urlencode "search_type=full_text" \
-     --data-urlencode "doc_type=cases" \
-     --data-urlencode "size=30"
-   ```
+1. **Phrase search on the neutral citation** — `{ query: "\"2014 SCC 71\"", search_type: "full_text", doc_type: "cases", size: 30 }`.
 
-2. **Name search on the case name** (catches cases that mention by name only):
-   ```bash
-   curl -sG "https://api.a2aj.ca/search" \
-     --data-urlencode "query=Bhasin v Hrynew" \
-     --data-urlencode "search_type=name" \
-     --data-urlencode "doc_type=cases" \
-     --data-urlencode "size=30"
-   ```
+2. **Name search on the case name** (catches cases that mention by name only) — `{ query: "Bhasin v Hrynew", search_type: "name", doc_type: "cases", size: 30 }`.
 
-Combine and dedupe. Drop the target case itself if it appears.
+Read each tool result inline, combine and dedupe. Drop the target case itself if it appears.
 
 ## Classifying treatment
 
 For each citing case (cap at **6 per target** — pick the most authoritative: SCC > appellate > trial; recent over old):
 
-1. Fetch the citing case via `curl ... /fetch?citation=<citing>`.
-2. Find the paragraph(s) where the target is cited — search the text for the neutral citation string AND the case name.
+1. Locate the citation in one tool call:
+   `mcp__a2aj__locate_in_case` with `{ citation: "<citing>", needle: "<target neutral citation OR case name>", context_radius: 2 }`. The response is `{ found, name, match_count, matches: [{ paragraph, before, match, after }] }`. Each match gives you the paragraph number, the verbatim paragraph text, and surrounding paragraphs of context.
+2. If the first needle (neutral citation) returns no matches, retry with the case name as the needle. If both return nothing, the citing case doesn't actually engage the target — drop it.
 3. Read the citing paragraph plus 2–3 paragraphs of context.
 4. Classify the treatment using one of these five labels:
 
@@ -95,11 +82,3 @@ Output ONLY valid JSON:
 - Max 8 fetch calls total (2 search + 6 citing-case fetches).
 - Output only the JSON.
 
-## Bash hygiene (avoid permission prompts)
-
-- **Do not use `$(...)` command substitution** in your bash commands.
-- **Do not use `${VAR}` or `${VAR:-default}` parameter expansion.**
-- **Do not chain with `&&` or `||`.** Run commands separately.
-- Use literal paths like `/tmp/lr-*.json` for tempfiles. Pipe redirection (`>`, `<`, `|`) and stdin/stdout redirection are fine.
-- For locating a citation in a fetched case, write the case text to a tempfile then `grep` for the citation string — don't try to do it inline with substitution.
-- These constraints prevent Claude Code's "Contains expansion" permission prompt from triggering.
