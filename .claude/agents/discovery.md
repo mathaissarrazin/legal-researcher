@@ -39,7 +39,7 @@ The response is JSON: `{ "results": [{ citation_en, name_en, dataset, document_d
 ## Your work
 
 1. Take Planner's queries (each with its own `doc_type`, `search_type`, `dataset`) and SecondarySource's seed citations (if any).
-2. For each Planner query, run a curl call. Honor the query's `doc_type` — if it's `"laws"`, pass `doc_type=laws` in the curl. Cap at 8 search calls total. **Statute lookups (doc_type=laws) usually go first and are cheap — run them before case searches.**
+2. For each Planner query, run a curl call. Honor the query's `doc_type` — if it's `"laws"`, pass `doc_type=laws` in the curl. **Cap at 5 search calls total.** Statute lookups (doc_type=laws) usually go first and are cheap — run them before case searches.
 3. **Verify each seed citation from SecondarySource** by hitting `/search` with `search_type=name` for the case name OR `search_type=full_text` for the neutral citation as a phrase. Drop any seed that doesn't appear in A2AJ's corpus — the corpus has gaps and we cite only what we can read.
 4. Combine all results. Dedupe by citation/identifier. **Keep cases and laws separate** in the output (different downstream paths in the Reader).
 5. Rank case candidates by: (a) appearing in multiple queries (high signal), (b) court hierarchy (SCC > appellate > trial), (c) recency unless the question is historical-doctrinal, (d) alignment with sub-issues.
@@ -82,7 +82,7 @@ If no legislation queries were planned (or none returned hits), `legislation` is
 
 ## Constraints
 
-- Max 8 search calls per run.
+- Max 5 search calls per run.
 - Always scope by dataset.
 - Always URL-encode query strings (use `--data-urlencode`).
 - If a curl call fails or returns malformed JSON, retry once; if it fails again, log to `droppedSeeds` and continue.

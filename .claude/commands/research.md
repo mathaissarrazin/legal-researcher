@@ -44,34 +44,36 @@ Spawn both subagents in a single message with two Agent tool calls.
 
 After both return, merge the candidate set: discovery's candidates plus any secondary-source seed citations that discovery confirmed exist in A2AJ. Dedupe by citation.
 
-### Step 3 — Reader (Phase 1)
+### Step 3 — Reader (Phase 1) — PARALLEL
 
-Spawn the `reader` subagent. Input: **all `legislation` hits** from Discovery (these are usually 1–2 statutes; always digest them) PLUS the top `depth` `candidates` (cases) from Discovery, where `depth` came from the planner.
+The Reader processes ONE item per invocation. Build the input list:
+- All `legislation` hits from Discovery (typically 1–2 statutes; always digest them)
+- The top `depth` `candidates` (cases) from Discovery, where `depth` came from the planner
 
-The Reader fetches each (using `doc_type=laws` for legislation, default for cases), produces digests, and self-verifies its `keyParagraphs` via `verify.js` before returning.
+Spawn one `reader` subagent **per item, in a single message with multiple Agent tool calls** so they run in parallel. Each Reader fetches its assigned item, self-verifies its `keyParagraphs` via `verify.js`, and returns a single digest object (`{ digestType, ... }`).
 
-Statute digests come back differently than case digests (sections, not paragraphs); the Reader's prompt handles both shapes via the `digestType` field.
+Collect the per-item digests into a `digests: [...]` array. This is the canonical Phase 1 digest pool.
+
+Statute digests have shape `digestType: "legislation"` (sections + sectionCitatorQueries); case digests have `digestType: "case"` (keyParagraphs + internalCitations).
 
 ### Step 3a — Section-citator search (only if legislation digests exist)
 
-Scan the Reader's output for digests with `digestType: "legislation"`. Each one carries a `sectionCitatorQueries` array — these are forward note-up searches for the statutory provisions: "find cases applying section X of this Act."
+Scan the Phase 1 digest pool for entries with `digestType: "legislation"`. Each carries a `sectionCitatorQueries` array — forward note-up for the statutory provisions: "find cases applying section X of this Act."
 
-If `sectionCitatorQueries` is non-empty:
+If `sectionCitatorQueries` is non-empty across the legislation digests:
 
-1. Flatten the queries across all legislation digests into a single list (cap at ~6 total queries to respect A2AJ rate limits and budget).
+1. Flatten the queries into a single list (cap at ~6 total).
 2. Spawn `discovery` subagent again with these queries. It returns additional case candidates.
-3. Spawn `reader` subagent (Phase 2) on the top `min(depth, 5)` new candidates that weren't already digested in Phase 1.
-4. Merge Phase 2 case digests into the digest pool from Phase 1.
+3. Take the top `min(depth, 5)` new candidates that weren't already in Phase 1, and spawn one `reader` subagent **per case in parallel** (single message, multiple Agent calls).
+4. Merge Phase 2 digests into the Phase 1 digest pool.
 
-If there are no legislation digests, or `sectionCitatorQueries` is empty, skip this step entirely.
+If no legislation digests, or `sectionCitatorQueries` is empty, skip this step.
 
-The merged digest pool is what flows into the rest of the pipeline.
+### Step 4 — TreatmentClassifier — PARALLEL
 
-### Step 4 — TreatmentClassifier
+Identify the strong on-point cases from the digest pool — typically 2–4 leading authorities the Synthesizer will rely on heavily.
 
-Spawn the `treatment-classifier` subagent. Input: the strong on-point cases from the reader's digests (typically 2–4 cases — the leading authorities).
-
-Returns treatment classifications for each citing case.
+Spawn one `treatment-classifier` subagent **per target case, in parallel** (single message, multiple Agent calls). Each returns a `treatments[]` array for its one target. Concatenate the arrays into a single combined treatments list.
 
 ### Step 5 — Synthesizer (round 1)
 
@@ -94,13 +96,13 @@ The auditor returns `verdict` AND `routeBack`. Branch on the pair:
 - `verdict: "revise"`, `routeBack: "reader"` → go to Step 7a (Reader-redo path).
 - `verdict: "revise"`, `routeBack: "synthesizer"` → go to Step 7b (Synthesizer-revise path).
 
-### Step 7a — Reader-redo (paragraph mismatches / misquotes)
+### Step 7a — Reader-redo (paragraph mismatches / misquotes) — PARALLEL
 
 This path exists because most "verification failures" aren't fabrication — they're paragraph-numbering mismatches between A2AJ's text and the Synthesizer's memory. The fix is to re-read the source.
 
-1. Spawn `reader` subagent again. Input: the citations in `auditor.failingCitationsForReader`. The Reader re-fetches each from A2AJ, extracts fresh `keyParagraphs` (and self-verifies them via `verify.js` per its prompt), and returns corrected digests.
+1. For each citation in `auditor.failingCitationsForReader`, spawn one `reader` subagent **in parallel** (single message, multiple Agent calls). Each re-fetches its citation, extracts fresh `keyParagraphs` (self-verified via `verify.js`), and returns a corrected digest.
 
-2. Spawn `synthesizer` again. Input: the original synthesizer inputs WITH the failing case digests **replaced** by the corrected ones from step (1), PLUS the auditor's `revisionNotes`, PLUS any `unmetNeeds` the synthesizer flagged in the first draft.
+2. Spawn `synthesizer` again. Input: original synthesizer inputs WITH the failing case digests **replaced** by the corrected ones from step (1), PLUS the auditor's `revisionNotes`, PLUS any `unmetNeeds` the synthesizer flagged in the first draft.
 
 3. Spawn `auditor` once more on the revised draft. This is the **second and final** audit pass.
 
@@ -134,12 +136,17 @@ Print to the user:
 
 ## Rules of orchestration
 
-- **Spawn each subagent through the Agent tool, with `subagent_type` matching the agent file name.**
-- **Pass minimal context.** Don't include planner output to the auditor; don't include reader digests to the secondary-source agent. Each subagent gets only what its prompt expects as input.
-- **Run secondary-source + discovery in parallel.** They have no dependency on each other (only on the planner's output).
+- **Spawn each subagent through the Agent tool, with `subagent_type` matching the agent's `name` field.**
+- **Pass minimal context.** Each subagent gets only what its prompt expects.
+- **Parallelize where possible.** Multiple Agent tool calls in a single message run in parallel:
+  - Step 2: `secondary-source` + `discovery` in parallel.
+  - Step 3 (Reader Phase 1): one `reader` per item (case or legislation) — N parallel calls.
+  - Step 3a (Reader Phase 2): one `reader` per section-citator-discovered case — parallel.
+  - Step 4 (TreatmentClassifier): one `treatment-classifier` per target case — parallel.
+  - Step 7a (Reader-redo): one `reader` per failing citation — parallel.
 - **Capture all stage outputs** so the finalizer can write the sidecar.
 - **Maximum 2 audit rounds total.** No third try.
-- **If any subagent's output is malformed JSON or missing required fields, treat that agent's run as failed. Log it; if it's discovery or reader, abort the run. If it's secondary-source, continue without seeds.**
+- **If any subagent's output is malformed JSON or missing required fields, treat that single spawn as failed. Other parallel spawns continue. If discovery itself fails or all readers fail, abort the run.**
 
 ## What you do NOT do
 

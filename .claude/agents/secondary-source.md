@@ -39,7 +39,7 @@ Output ONLY valid JSON:
 
 ## Constraints
 
-- Two WebSearch calls maximum. This is a cheap pass; the Discovery agent does the heavy primary-source lifting.
-- Two WebFetch calls maximum, on the most promising results.
+- ONE WebSearch call. This is a cheap pass; the Discovery agent does the heavy primary-source lifting.
+- ONE WebFetch call, on the single most promising result. Skip if all results are paywalled or low quality.
 - Output only the JSON. No explanation prose.
 - If a secondary source is paywalled, skip it — try another.

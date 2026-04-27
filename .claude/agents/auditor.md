@@ -31,9 +31,15 @@ Run every entry. **Classify each failure by type** based on the exit code AND th
 
 **Abort rule (refined):** abort ONLY if `fabricatedCitation` count > 2 on the FIRST audit pass. Pure `paragraphMismatch` and `misquote` failures do NOT trigger abort — they trigger a Reader re-do, because they're routing-fixable, not hallucination.
 
-## Phase 2 — LLM critique (only after Phase 1 passes, or after a revision)
+## Phase 2 — LLM critique (skip when Phase 1 is fully clean)
 
-Read the memo and identify, against the underlying material:
+**Speed optimization: skip Phase 2 entirely when Phase 1 produced ZERO failures (no fabricatedCitations, no paragraphMismatches, no misquotes).** A draft that passes deterministic verification cleanly is overwhelmingly likely to be substantively sound — Phase 2 critique adds little value and meaningful latency. In that case, emit `verdict: "pass"`, set Phase 2 fields to empty arrays, and stop.
+
+Run Phase 2 only when:
+- Phase 1 had ANY failures (because then we're already in revise/abort territory and substantive context helps the next iteration), OR
+- This is the SECOND audit round after a revision (always check substance on the final pass).
+
+When you do run Phase 2, identify against the underlying material:
 
 - **Weak claims** — propositions with thin or off-point support
 - **Overreach** — claims broader than the cited authority supports
