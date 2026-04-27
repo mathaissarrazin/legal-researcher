@@ -55,6 +55,64 @@ To run the optional integration test that hits A2AJ live:
 A2AJ_INTEGRATION=1 npm test
 ```
 
+### Permissions (optional)
+
+Claude Code prompts before running shell commands it hasn't seen before. The committed `.claude/settings.json` pre-allows the baseline a research run needs (curl, node, jq, common file utilities, `WebSearch`, `WebFetch`). For the broader Python / PDF / OCR / archive toolkit a typical run touches, drop the following into your **personal** `.claude/settings.local.json` (gitignored). Runs work without it — you'll just be asked to approve each unfamiliar command the first time it appears.
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(pip *)",
+      "Bash(pip3 *)",
+      "Bash(uv *)",
+      "Bash(uvx *)",
+
+      "Bash(wget *)",
+
+      "Bash(pdftotext *)",
+      "Bash(pdfinfo *)",
+      "Bash(tesseract *)",
+      "Bash(ocrmypdf *)",
+
+      "Bash(find *)",
+      "Bash(file *)",
+      "Bash(which *)",
+      "Bash(where *)",
+      "Bash(diff *)",
+      "Bash(rg *)",
+
+      "Bash(env)",
+      "Bash(printenv *)",
+
+      "Bash(xxd *)",
+      "Bash(hexdump *)",
+      "Bash(base64 *)",
+      "Bash(iconv *)",
+
+      "Bash(gzip *)",
+      "Bash(gunzip *)",
+      "Bash(tar *)",
+      "Bash(unzip *)",
+
+      "Bash(md5sum *)",
+      "Bash(sha256sum *)",
+
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git rev-parse*)"
+    ]
+  }
+}
+```
+
+These permissions are intentionally read/process-only. Anything that mutates the system globally (`sudo`, `apt`, `brew install`, `rm -rf /*`, `chmod -R`) will still prompt — by design.
+
 ## Usage
 
 ```bash
