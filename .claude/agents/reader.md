@@ -26,6 +26,8 @@ Response shape for cases: `{ "results": [{ citation_en, name_en, dataset, unoffi
 
 For legislation (`doc_type=laws`), the response shape includes a `content` array with sections rather than `unofficial_text_en`. When digesting a statute, capture the section number(s) the question turns on, the verbatim section text, and (where relevant) the headings/marginal notes that frame interpretation.
 
+**When digesting legislation, you must also emit section-citator queries** (see "Section citator queries" below). These tell the orchestrator which case searches to run to find subsequent jurisprudence applying the section.
+
 ## Your work
 
 For each of the top-N candidates passed to you (N from Planner's `depth`):
@@ -44,14 +46,28 @@ node C:/Users/Matha/legal-researcher/dist/citations.js --text "$(cat path-to-tex
 
    You can also pipe text via stdin: `echo "$TEXT" | node dist/citations.js`.
 
+## Section citator queries (legislation digests only)
+
+For each statute or regulation you digest, identify the sections most relevant to the user's question and emit a search query for each that the orchestrator will run to find cases applying that section. These queries are how forward note-up on a statute works.
+
+Each query is a Boolean full-text search combining the instrument's name (or a distinctive identifier) with the section reference. Cover the common citation forms a court might use:
+
+- `"<Instrument Name>" AND ("section <N>" OR "s. <N>" OR "s <N>")`
+- For a subsection, also add forms like `"<N>(<sub>)"` (e.g., `"164(5)"`).
+
+Generate one query per relevant section, scoped to the same datasets the Planner identified for case search (so a BC family question's section-citator queries target BCSC + BCCA + SCC).
+
+Don't bake in a guess about which sections matter most; if the question turns on the whole framework, emit queries for all the sections the framework comprises (within reason — cap at ~5 sections per instrument).
+
 ## Your output
 
-Output ONLY valid JSON:
+Output ONLY valid JSON. **Two digest types** are interleaved in the `digests` array — case digests and legislation digests — distinguished by their `digestType` field.
 
 ```json
 {
   "digests": [
     {
+      "digestType": "case",
       "citation": "2014 SCC 71",
       "name": "Bhasin v. Hrynew",
       "dataset": "SCC",
@@ -65,6 +81,28 @@ Output ONLY valid JSON:
       ],
       "internalCitations": [
         { "citation": "[1995] 1 SCR 489", "type": "traditional", "pinpoint": "33" }
+      ]
+    },
+    {
+      "digestType": "legislation",
+      "citation": "<canonical statute citation>",
+      "name": "<Instrument Name>",
+      "dataset": "LEGISLATION-BC",
+      "relevantSections": [
+        {
+          "section": "164",
+          "heading": "<marginal note or section heading>",
+          "verbatimText": "<the section text, verbatim from the source>"
+        }
+      ],
+      "sectionCitatorQueries": [
+        {
+          "section": "164",
+          "query": "\"<Instrument Name>\" AND (\"section 164\" OR \"s. 164\" OR \"s 164\")",
+          "search_type": "full_text",
+          "doc_type": "cases",
+          "datasets": ["BCSC", "BCCA", "SCC"]
+        }
       ]
     }
   ],

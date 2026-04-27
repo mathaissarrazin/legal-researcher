@@ -26,13 +26,28 @@ Spawn both subagents in a single message with two Agent tool calls.
 
 After both return, merge the candidate set: discovery's candidates plus any secondary-source seed citations that discovery confirmed exist in A2AJ. Dedupe by citation.
 
-### Step 3 — Reader
+### Step 3 — Reader (Phase 1)
 
 Spawn the `reader` subagent. Input: **all `legislation` hits** from Discovery (these are usually 1–2 statutes; always digest them) PLUS the top `depth` `candidates` (cases) from Discovery, where `depth` came from the planner.
 
 The Reader fetches each (using `doc_type=laws` for legislation, default for cases), produces digests, and self-verifies its `keyParagraphs` via `verify.js` before returning.
 
-Statute digests come back differently than case digests (sections, not paragraphs); the Reader's prompt handles both shapes.
+Statute digests come back differently than case digests (sections, not paragraphs); the Reader's prompt handles both shapes via the `digestType` field.
+
+### Step 3a — Section-citator search (only if legislation digests exist)
+
+Scan the Reader's output for digests with `digestType: "legislation"`. Each one carries a `sectionCitatorQueries` array — these are forward note-up searches for the statutory provisions: "find cases applying section X of this Act."
+
+If `sectionCitatorQueries` is non-empty:
+
+1. Flatten the queries across all legislation digests into a single list (cap at ~6 total queries to respect A2AJ rate limits and budget).
+2. Spawn `discovery` subagent again with these queries. It returns additional case candidates.
+3. Spawn `reader` subagent (Phase 2) on the top `min(depth, 5)` new candidates that weren't already digested in Phase 1.
+4. Merge Phase 2 case digests into the digest pool from Phase 1.
+
+If there are no legislation digests, or `sectionCitatorQueries` is empty, skip this step entirely.
+
+The merged digest pool is what flows into the rest of the pipeline.
 
 ### Step 4 — TreatmentClassifier
 
