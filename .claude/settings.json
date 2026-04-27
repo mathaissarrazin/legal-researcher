@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl *)",
+      "Bash(node *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(echo *)",
+      "Bash(printf *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(date *)",
+      "Bash(mkdir *)",
+      "Bash(cygpath *)",
+      "Bash(wslpath *)",
+      "WebSearch",
+      "WebFetch",
+      "Write",
+      "Edit"
+    ]
+  }
+}
