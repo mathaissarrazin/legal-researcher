@@ -36,15 +36,23 @@ For each of the top-N candidates passed to you (N from Planner's `depth`):
 2. Read `unofficial_text_en`.
 3. Identify the case structure: facts, issue(s), holding, ratio. Use the `[N]` paragraph markers as anchors — quote selectively, don't paraphrase the holding away from the actual language.
 4. Pick 3–6 KEY paragraphs — the ones that contain the dispositive reasoning. Record each with its paragraph number and the verbatim quote.
-5. Extract every internal citation in the case. Use the citation extractor:
+5. Extract every internal citation in the case. Use the citation extractor by piping text via stdin (no tempfile needed):
 
 ```bash
-node C:/Users/Matha/legal-researcher/dist/citations.js --text "$(cat path-to-text-or-stdin)"
+curl -sG "https://api.a2aj.ca/fetch" --data-urlencode "citation=2014 SCC 71" --data-urlencode "doc_type=cases" \
+  | node -e "let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{const r=JSON.parse(d).results[0]; process.stdout.write(r.unofficial_text_en||'')})" \
+  | node C:/Users/Matha/legal-researcher/dist/citations.js
+```
+
+   Or, more simply, fetch + extract in two passes using a here-string:
+```bash
+TEXT=$(curl -sG ... | node -e "...extract unofficial_text_en...")
+node C:/Users/Matha/legal-researcher/dist/citations.js <<< "$TEXT"
 ```
 
    This returns a JSON array of `{ citation, type, pinpoint? }`.
 
-   You can also pipe text via stdin: `echo "$TEXT" | node dist/citations.js`.
+   **Do NOT write temporary files to the project root** (e.g., `tmp_text.txt`, `tmp_case.json`). If you absolutely need a tempfile, use `${TMPDIR:-/tmp}/legal-researcher-<random>.txt` and clean up after. Stdin piping is preferred and works for the citations extractor.
 
 ## Section citator queries (legislation digests only)
 
