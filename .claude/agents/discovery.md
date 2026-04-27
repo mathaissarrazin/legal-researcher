@@ -1,4 +1,5 @@
 ---
+name: discovery
 description: Run A2AJ full-text searches scoped to relevant datasets, rank candidate cases
 tools: Bash
 model: sonnet

@@ -1,4 +1,5 @@
 ---
+name: reader
 description: Fetch full case text from A2AJ, produce IRAC digest, extract internal citations
 tools: Bash
 model: sonnet

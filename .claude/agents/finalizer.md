@@ -1,4 +1,5 @@
 ---
+name: finalizer
 description: Write final memo to disk with disclaimer footer; produce JSON sidecar with all stage outputs
 tools: Write, Bash
 model: haiku

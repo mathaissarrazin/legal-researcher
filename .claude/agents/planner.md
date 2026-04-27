@@ -1,4 +1,5 @@
 ---
+name: planner
 description: Decompose legal question into sub-issues, identify in-scope datasets, build search plan
 model: sonnet
 ---

@@ -1,4 +1,5 @@
 ---
+name: synthesizer
 description: Draft IRAC memo with claim-level citations grounded in fetched case text
 model: sonnet
 ---

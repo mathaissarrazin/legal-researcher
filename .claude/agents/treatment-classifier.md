@@ -1,4 +1,5 @@
 ---
+name: treatment-classifier
 description: Find cases citing a target case, classify treatment as followed/applied/distinguished/criticized/neutral
 tools: Bash
 model: sonnet

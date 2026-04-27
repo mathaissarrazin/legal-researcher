@@ -1,4 +1,5 @@
 ---
+name: auditor
 description: Two-phase audit — deterministic citation/quote verification, then LLM critique of reasoning
 tools: Bash
 model: opus

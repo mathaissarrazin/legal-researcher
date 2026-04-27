@@ -1,4 +1,5 @@
 ---
+name: secondary-source
 description: Surface seed cases via Google search of CanLII commentary and open law journals
 tools: WebSearch, WebFetch
 model: haiku
