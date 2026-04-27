@@ -9,6 +9,24 @@ The user's question is in `$ARGUMENTS`.
 
 **Contamination prevention is a design principle.** Each subagent has an isolated context. Pass only the inputs that subagent needs — do not dump the entire pipeline state into every spawn.
 
+**Progress visibility is required.** The user is watching this run in their terminal. **Before** spawning any subagent, print a one-line "starting" announcement to the user (visible terminal output, not a tool call). **After** the subagent returns, print a one-line "completed" line that includes the agent's `progressSummary` field. Use this format:
+
+```
+▶ planner — decomposing the question…
+✓ planner: <progressSummary from the agent's output>
+
+▶ secondary-source + discovery (parallel) — finding seed cases and running A2AJ search…
+✓ secondary-source: <progressSummary>
+✓ discovery: <progressSummary>
+
+▶ reader (Phase 1) — fetching and digesting top candidates + legislation…
+✓ reader: <progressSummary>
+
+(... and so on through every stage)
+```
+
+Print these as plain text in your assistant response between Agent tool calls. They are how the user follows what the system is doing in real time.
+
 ## Pipeline
 
 ### Step 1 — Planner

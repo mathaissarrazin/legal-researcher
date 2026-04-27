@@ -107,7 +107,8 @@ Output ONLY valid JSON. **Two digest types** are interleaved in the `digests` ar
     }
   ],
   "fetchCallsMade": 3,
-  "fetchFailures": []
+  "fetchFailures": [],
+  "progressSummary": "<one sentence, plain English: e.g., 'Digested 1 statute (sections 164, 93) and 4 cases; self-verified 18 key paragraphs, dropped 2 that failed verify.js'>"
 }
 ```
 

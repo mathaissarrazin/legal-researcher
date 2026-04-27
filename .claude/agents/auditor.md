@@ -84,7 +84,8 @@ Output ONLY valid JSON:
   "verdict": "pass" | "revise" | "abort",
   "routeBack": "reader" | "synthesizer" | null,
   "failingCitationsForReader": ["2003 SCC 24", "2009 SCC 10"],
-  "revisionNotes": "<plain-text instructions to whoever you're routing back to>"
+  "revisionNotes": "<plain-text instructions to whoever you're routing back to>",
+  "progressSummary": "<one sentence, plain English: e.g., 'Verified 22 claims via verify.js — 18 pass, 0 fabricated, 3 paragraph mismatches in 2 cases, 1 misquote; verdict=revise routeBack=reader' OR 'All 22 claims verified clean; verdict=pass'>"
 }
 ```
 

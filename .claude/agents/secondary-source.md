@@ -16,7 +16,8 @@ Output ONLY valid JSON:
   "seedCitations": [
     { "citation": "2014 SCC 71", "name": "Bhasin v. Hrynew", "source": "<URL of commentary>", "framing": "<one-line doctrinal note>" }
   ],
-  "doctrinalNotes": "<2-4 sentences summarizing how the field is structured according to the secondary sources you read>"
+  "doctrinalNotes": "<2-4 sentences summarizing how the field is structured according to the secondary sources you read>",
+  "progressSummary": "<one sentence, plain English: e.g., 'Read 2 CanLII commentaries; surfaced 5 seed cases led by [Name]; framed as [doctrinal area]'>"
 }
 ```
 

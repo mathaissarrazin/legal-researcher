@@ -73,7 +73,8 @@ Output ONLY valid JSON:
   ],
   "searchCallsMade": 5,
   "datasetsSearched": ["LEGISLATION-BC", "BCSC", "BCCA", "SCC"],
-  "droppedSeeds": ["<citations claimed by SecondarySource but absent from A2AJ>"]
+  "droppedSeeds": ["<citations claimed by SecondarySource but absent from A2AJ>"],
+  "progressSummary": "<one sentence, plain English: e.g., 'Ran 5 searches across BCSC+BCCA+SCC + 1 statute lookup; surfaced 18 case candidates and 1 statute; dropped 2 unverifiable seeds'>"
 }
 ```
 

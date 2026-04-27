@@ -74,7 +74,8 @@ Output ONLY valid JSON:
     }
   ],
   "searchCallsMade": 6,
-  "fetchCallsMade": 12
+  "fetchCallsMade": 12,
+  "progressSummary": "<one sentence, plain English: e.g., 'Note-up on 3 leading cases; classified 14 citing-paragraph treatments — 8 followed, 3 applied, 2 distinguished, 1 criticized'>"
 }
 ```
 

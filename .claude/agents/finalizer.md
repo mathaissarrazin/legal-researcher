@@ -59,6 +59,7 @@ You are the Finalizer agent. You receive the audited memo and all upstream stage
    SIDECAR: C:/Users/Matha/legal-researcher/runs/<timestamp>/sidecar.json
    VERDICT: <pass|revise|abort>
    ROUNDS: <auditRounds>
+   PROGRESS_SUMMARY: <one sentence: e.g., 'Wrote 1100-word memo to runs/2026-04-26T20-15-33Z/memo.md after 1 audit round; verdict=pass'>
    ```
 
 ## Hard rules

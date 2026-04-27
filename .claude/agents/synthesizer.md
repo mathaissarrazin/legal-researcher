@@ -26,7 +26,8 @@ Output a single JSON object. The `memo` field contains the full markdown memo. T
       "issue": "<the issue that lacks adequate authority>",
       "reason": "<what would be needed: e.g., 'BCSC case applying FLA s. 164(5) to a cohabitation agreement specifically'>"
     }
-  ]
+  ],
+  "progressSummary": "<one sentence, plain English: e.g., 'Drafted 4-issue IRAC memo, ~1100 words; grounded 22 claims in 8 cases + 1 statute; flagged 2 unmet needs'>"
 }
 ```
 

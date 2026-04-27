@@ -19,7 +19,8 @@ Output ONLY valid JSON, with no surrounding prose. Schema:
     { "query": "<statute name>", "search_type": "name", "doc_type": "laws", "dataset": "LEGISLATION-BC" }
   ],
   "depth": 3,
-  "crossStatuteScope": "<short note on overlapping statutory frameworks, or null>"
+  "crossStatuteScope": "<short note on overlapping statutory frameworks, or null>",
+  "progressSummary": "<one sentence, plain English: what you concluded — e.g., 'Identified 3 sub-issues; scoping to BCSC+BCCA+SCC plus LEGISLATION-BC; statute-first via FLA lookup; depth=4'>"
 }
 ```
 
