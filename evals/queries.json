@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "question": "Test for imputing income to a self-employed payor under section 19 of the Federal Child Support Guidelines",
+    "notes": "BC/ON family law; cross-provincial; expect Drygala-line jurisprudence and Bak v. Dobell-style framework"
+  },
+  {
+    "id": 2,
+    "question": "Duties of good faith in commercial contract performance in Canada",
+    "notes": "Federal/common-law; expect Bhasin/Wastech/Callow trilogy and any provincial application"
+  },
+  {
+    "id": 3,
+    "question": "Test for summary judgment in Ontario after Hryniak",
+    "notes": "Ontario civil; expect Hryniak v. Mauldin and ONCA applications"
+  },
+  {
+    "id": 4,
+    "question": "Standard for credibility findings in the Refugee Appeal Division",
+    "notes": "Administrative law; expect RAD jurisprudence + FC judicial review supervision"
+  },
+  {
+    "id": 5,
+    "question": "When does the BC Supreme Court grant interim spousal support pending trial",
+    "notes": "BC family practice; expect BCSC chambers decisions on threshold/quantum"
+  }
+]

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+runs/*
+!runs/_verify/
+!runs/_verify/**
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

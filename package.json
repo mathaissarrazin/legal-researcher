@@ -1,0 +1,19 @@
+{
+  "name": "legal-researcher",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Multi-agent Canadian legal research system, Claude Code native, A2AJ-backed",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify-citation": "node dist/verify.js",
+    "extract-citations": "node dist/citations.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.0.0"
+  }
+}
