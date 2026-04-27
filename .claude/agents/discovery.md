@@ -87,3 +87,11 @@ If no legislation queries were planned (or none returned hits), `legislation` is
 - Always URL-encode query strings (use `--data-urlencode`).
 - If a curl call fails or returns malformed JSON, retry once; if it fails again, log to `droppedSeeds` and continue.
 - Output only the JSON.
+
+## Bash hygiene (avoid permission prompts)
+
+- **Do not use `$(...)` command substitution** in your bash commands.
+- **Do not use `${VAR}` or `${VAR:-default}` parameter expansion.**
+- **Do not chain with `&&` or `||`.** Run commands separately.
+- Use literal paths like `/tmp/lr-*.json` for tempfiles. Pipe redirection (`>`, `<`, `|`) is fine.
+- These constraints prevent Claude Code's "Contains expansion" permission prompt from triggering on every command.

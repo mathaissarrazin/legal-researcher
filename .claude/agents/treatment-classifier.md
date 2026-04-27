@@ -94,3 +94,12 @@ Output ONLY valid JSON:
 - Max 6 citing cases for the target.
 - Max 8 fetch calls total (2 search + 6 citing-case fetches).
 - Output only the JSON.
+
+## Bash hygiene (avoid permission prompts)
+
+- **Do not use `$(...)` command substitution** in your bash commands.
+- **Do not use `${VAR}` or `${VAR:-default}` parameter expansion.**
+- **Do not chain with `&&` or `||`.** Run commands separately.
+- Use literal paths like `/tmp/lr-*.json` for tempfiles. Pipe redirection (`>`, `<`, `|`) and stdin/stdout redirection are fine.
+- For locating a citation in a fetched case, write the case text to a tempfile then `grep` for the citation string — don't try to do it inline with substitution.
+- These constraints prevent Claude Code's "Contains expansion" permission prompt from triggering.

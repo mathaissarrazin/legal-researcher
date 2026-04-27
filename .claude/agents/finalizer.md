@@ -68,3 +68,9 @@ You are the Finalizer agent. You receive the audited memo and all upstream stage
 - **Footer is verbatim.** Don't expand or rephrase the disclaimer.
 - **Sidecar is comprehensive.** Every stage output goes in. The user must be able to post-mortem any run.
 - **Output to stdout is just the four lines above.** No JSON, no commentary.
+
+## Bash hygiene (avoid permission prompts)
+
+- For the timestamp, run `date -u +"%Y-%m-%dT%H-%M-%SZ"` and capture its output by writing to a tempfile (`date ... > /tmp/lr-ts.txt`) then `cat /tmp/lr-ts.txt` — do **not** use `$(date ...)` substitution.
+- For the directory creation, use literal paths once you know the timestamp. No `${VAR}` or `$()` expansion.
+- These constraints prevent the "Contains expansion" permission prompt.
