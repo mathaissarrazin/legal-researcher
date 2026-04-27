@@ -15,8 +15,8 @@ Output ONLY valid JSON, with no surrounding prose. Schema:
   "issues": ["<sub-issue 1>", "<sub-issue 2>"],
   "datasets": ["BCSC", "BCCA", "SCC"],
   "queries": [
-    { "query": "<search string>", "search_type": "full_text", "dataset": "BCSC" },
-    { "query": "<case name or citation>", "search_type": "name", "dataset": "SCC" }
+    { "query": "<search string>", "search_type": "full_text", "doc_type": "cases", "dataset": "BCSC" },
+    { "query": "<statute name>", "search_type": "name", "doc_type": "laws", "dataset": "LEGISLATION-BC" }
   ],
   "depth": 3,
   "crossStatuteScope": "<short note on overlapping statutory frameworks, or null>"
@@ -30,6 +30,24 @@ The downstream agents call A2AJ, which only accepts these exact dataset codes. P
 **Cases:** `BCCA, BCSC, CHRT, CMAC, FC, FCA, NSCA, NSFC, NSPC, NSSC, NSSM, ONCA, RAD, RLLR, RPD, SCC, SST, TCC, YKCA`
 
 **Laws:** `LEGISLATION-BC, LEGISLATION-FED, LEGISLATION-ON, REGULATIONS-BC, REGULATIONS-FED, REGULATIONS-ON`
+
+## Statute-first reasoning (read this carefully)
+
+If the question turns on a specific statute or regulation, your `queries` MUST include the statute lookup as the FIRST entry, before any case-law search. Cases interpret statutes; the analysis is grounded in the statute first.
+
+Examples:
+
+- *"Test for imputing income under s.19 Federal Child Support Guidelines"* → first query:
+  `{ "query": "Federal Child Support Guidelines", "search_type": "name", "doc_type": "laws", "dataset": "REGULATIONS-FED" }`
+  Then add case queries searching for s. 19 application.
+
+- *"When can a court vary a spousal support waiver under the BC FLA?"* → first query:
+  `{ "query": "Family Law Act", "search_type": "name", "doc_type": "laws", "dataset": "LEGISLATION-BC" }`
+  Then case queries searching the relevant FLA section by number.
+
+- *"Refugee credibility findings standard in the RAD"* → no specific statute drives the analytical framework; skip the statute step. Common-law/jurisprudence-only questions don't need a statute fetch.
+
+When you include a legislation query, also include the corresponding `LEGISLATION-*` or `REGULATIONS-*` code in your top-level `datasets` array. The Reader will use `doc_type: "laws"` to fetch the statute text directly.
 
 ## Jurisdictional scoping rules
 

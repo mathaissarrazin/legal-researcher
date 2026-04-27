@@ -28,9 +28,11 @@ After both return, merge the candidate set: discovery's candidates plus any seco
 
 ### Step 3 — Reader
 
-Spawn the `reader` subagent. Input: the top `depth` candidates (where `depth` came from the planner).
+Spawn the `reader` subagent. Input: **all `legislation` hits** from Discovery (these are usually 1–2 statutes; always digest them) PLUS the top `depth` `candidates` (cases) from Discovery, where `depth` came from the planner.
 
-The reader returns digests for each, with key paragraphs and extracted internal citations.
+The Reader fetches each (using `doc_type=laws` for legislation, default for cases), produces digests, and self-verifies its `keyParagraphs` via `verify.js` before returning.
+
+Statute digests come back differently than case digests (sections, not paragraphs); the Reader's prompt handles both shapes.
 
 ### Step 4 — TreatmentClassifier
 
@@ -40,9 +42,9 @@ Returns treatment classifications for each citing case.
 
 ### Step 5 — Synthesizer (round 1)
 
-Spawn the `synthesizer` subagent. Input: planner output, reader digests, treatment classifications, secondary-source doctrinal framing.
+Spawn the `synthesizer` subagent. Input: planner output (including `crossStatuteScope`), reader digests **including any statute digests** (the Synthesizer should open the Rule section with the statute when present), treatment classifications, secondary-source doctrinal framing.
 
-Returns `{ memo, claimCitationMap }`.
+Returns `{ memo, claimCitationMap, unmetNeeds }`.
 
 ### Step 6 — Auditor (round 1)
 
@@ -50,19 +52,38 @@ Spawn the `auditor` subagent. Input: synthesizer's `memo` and `claimCitationMap`
 
 Returns audit report with `verdict: pass | revise | abort`.
 
-### Step 7 — Branch on verdict
+### Step 7 — Branch on audit verdict
 
-- **pass** → go to Step 8 (Finalizer).
-- **revise** → go to Step 7a (revision).
-- **abort** → skip the Finalizer. Print to user: the question, the audit's `fabricatedCitations` and `misquotes`, and a one-line "draft failed audit; not finalized." Then stop.
+The auditor returns `verdict` AND `routeBack`. Branch on the pair:
 
-### Step 7a — Revision (only on first revise)
+- `verdict: "pass"` → go to Step 8 (Finalizer).
+- `verdict: "abort"` → skip the Finalizer. Print to user: the question, the audit's `fabricatedCitations`, and a one-line "Draft failed audit; not finalized — too many fabricated citations to recover." Then stop.
+- `verdict: "revise"`, `routeBack: "reader"` → go to Step 7a (Reader-redo path).
+- `verdict: "revise"`, `routeBack: "synthesizer"` → go to Step 7b (Synthesizer-revise path).
 
-Spawn `synthesizer` again. Input: original synthesizer inputs PLUS the auditor's `revisionNotes` and the lists of issues. Synthesizer produces a revised `memo` + `claimCitationMap`.
+### Step 7a — Reader-redo (paragraph mismatches / misquotes)
 
-Spawn `auditor` again on the revised draft. **Do not allow a third round** — whatever the second audit says, proceed to Step 8 if verdict is `pass` or `revise`, abort path if verdict is `abort`.
+This path exists because most "verification failures" aren't fabrication — they're paragraph-numbering mismatches between A2AJ's text and the Synthesizer's memory. The fix is to re-read the source.
 
-If the second audit returns `revise`, write the memo anyway but include the unresolved audit issues at the top of the memo as a "Caveats" section. The user will judge.
+1. Spawn `reader` subagent again. Input: the citations in `auditor.failingCitationsForReader`. The Reader re-fetches each from A2AJ, extracts fresh `keyParagraphs` (and self-verifies them via `verify.js` per its prompt), and returns corrected digests.
+
+2. Spawn `synthesizer` again. Input: the original synthesizer inputs WITH the failing case digests **replaced** by the corrected ones from step (1), PLUS the auditor's `revisionNotes`, PLUS any `unmetNeeds` the synthesizer flagged in the first draft.
+
+3. Spawn `auditor` once more on the revised draft. This is the **second and final** audit pass.
+
+4. Whatever the second audit says, proceed to Step 8 unless `verdict: "abort"`. If it's still `revise`, the Finalizer writes the memo with a "Caveats" section listing the unresolved audit issues at the top.
+
+### Step 7b — Synthesizer-revise (Phase 1 clean, Phase 2 substantive issues)
+
+1. Spawn `synthesizer` again. Input: original inputs PLUS the auditor's `phase2` issue lists, `revisionNotes`, and any `unmetNeeds` from the prior draft. (No reader-redo needed — Phase 1 was clean.)
+
+2. Spawn `auditor` once more. **Second and final** audit pass.
+
+3. Same termination rule as Step 7a step (4).
+
+### Step 7c — Maximum 2 audit rounds, total
+
+Under no circumstances run a third audit. After Step 7a or 7b's final audit, the result is final.
 
 ### Step 8 — Finalizer
 

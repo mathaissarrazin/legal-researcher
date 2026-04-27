@@ -20,9 +20,17 @@ Output a single JSON object. The `memo` field contains the full markdown memo. T
       "paragraph": 33,
       "quote": "verbatim quote from that paragraph that supports the claim"
     }
+  ],
+  "unmetNeeds": [
+    {
+      "issue": "<the issue that lacks adequate authority>",
+      "reason": "<what would be needed: e.g., 'BCSC case applying FLA s. 164(5) to a cohabitation agreement specifically'>"
+    }
   ]
 }
 ```
+
+`unmetNeeds` is your honest signal that the input material doesn't fully cover an issue. Use it. The orchestrator may launch a follow-up Discovery+Reader pass to fill the gap before audit.
 
 ## Memo structure (IRAC)
 
@@ -67,11 +75,18 @@ distinguished or criticized, flag it.>
 
 2. **No fabrication.** If you cannot ground a claim against the cases in your input, write *"Authority not located in corpus"* in place of a citation. Do not invent cases or paragraph numbers. Do not paraphrase a passage and present it as a quote.
 
-3. **Verbatim quotes only.** A quote in `claimCitationMap.quote` must appear verbatim (case-insensitive substring after whitespace normalization) in the corresponding paragraph of the source case. The Auditor will run a substring match.
+3. **Quotes come from the Reader's `keyParagraphs` output ONLY.** This is the most important rule. Your `claimCitationMap` entries MUST draw their `(citation, paragraph, quote)` triples directly from `digests[i].keyParagraphs` provided by the Reader. You may NOT:
+   - cite a paragraph the Reader did not extract,
+   - supply a quote from your own training-data memory of a case (even one you "know"),
+   - guess a paragraph number based on where you "think" something appears in a decision.
+
+   If you "know" *Bhasin v. Hrynew* says X at paragraph 81 from training, but the Reader's digest of *Bhasin* only extracted paragraphs 33 and 73, you CANNOT cite paragraph 81. The Reader is your only source of truth about what's at what paragraph. If the Reader's extraction is insufficient for the proposition you want to argue, that is a gap → log it in `unmetNeeds`, do not paper over it with a guessed paragraph.
 
 4. **Treatment-aware.** If TreatmentClassifier flagged that a leading case has been distinguished/criticized in your jurisdiction, the Application section must address it. Don't pretend a case is settled if subsequent jurisprudence has narrowed it.
 
 5. **Cross-statute discipline.** If the Planner flagged `crossStatuteScope` (e.g., provincial FLA + federal Divorce Act), the memo must distinguish the two regimes — don't blur them.
+
+6. **Statute first when the Planner identified one.** If the Reader digested legislation, the Rule section opens with the statutory framework (verbatim section text or close paraphrase with a quoted core), THEN moves to case-law interpretation. Don't bury the statute under case citations.
 
 ## What you do NOT do
 

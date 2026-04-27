@@ -38,12 +38,12 @@ The response is JSON: `{ "results": [{ citation_en, name_en, dataset, document_d
 
 ## Your work
 
-1. Take Planner's queries and SecondarySource's seed citations (if any).
-2. For each Planner query, run a curl call. Cap at 8 search calls total.
+1. Take Planner's queries (each with its own `doc_type`, `search_type`, `dataset`) and SecondarySource's seed citations (if any).
+2. For each Planner query, run a curl call. Honor the query's `doc_type` — if it's `"laws"`, pass `doc_type=laws` in the curl. Cap at 8 search calls total. **Statute lookups (doc_type=laws) usually go first and are cheap — run them before case searches.**
 3. **Verify each seed citation from SecondarySource** by hitting `/search` with `search_type=name` for the case name OR `search_type=full_text` for the neutral citation as a phrase. Drop any seed that doesn't appear in A2AJ's corpus — the corpus has gaps and we cite only what we can read.
-4. Combine all results. Dedupe by `citation_en`.
-5. Rank candidates by: (a) appearing in multiple queries (high signal), (b) court hierarchy (SCC > appellate > trial), (c) recency unless the question is historical-doctrinal, (d) alignment with sub-issues.
-6. Return top 15–25 candidates.
+4. Combine all results. Dedupe by citation/identifier. **Keep cases and laws separate** in the output (different downstream paths in the Reader).
+5. Rank case candidates by: (a) appearing in multiple queries (high signal), (b) court hierarchy (SCC > appellate > trial), (c) recency unless the question is historical-doctrinal, (d) alignment with sub-issues.
+6. Return top 15–25 case candidates plus all relevant statute hits.
 
 ## Your output
 
@@ -62,11 +62,22 @@ Output ONLY valid JSON:
       "sourceQueries": ["<query strings that surfaced this case>"]
     }
   ],
+  "legislation": [
+    {
+      "citation": "<statute citation, e.g., 'Family Law Act, SBC 2011, c 25'>",
+      "name": "Family Law Act",
+      "dataset": "LEGISLATION-BC",
+      "relevantSections": ["164", "93"],
+      "sourceQueries": ["<query that surfaced this statute>"]
+    }
+  ],
   "searchCallsMade": 5,
-  "datasetsSearched": ["BCSC", "BCCA", "SCC"],
+  "datasetsSearched": ["LEGISLATION-BC", "BCSC", "BCCA", "SCC"],
   "droppedSeeds": ["<citations claimed by SecondarySource but absent from A2AJ>"]
 }
 ```
+
+If no legislation queries were planned (or none returned hits), `legislation` is an empty array.
 
 ## Constraints
 

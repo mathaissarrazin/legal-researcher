@@ -20,12 +20,16 @@ node C:/Users/Matha/legal-researcher/dist/verify.js \
 
 Exit codes:
 - `0` — verified (citation exists, paragraph exists, quote substring present)
-- `1` — quote not found at paragraph
+- `1` — paragraph or quote mismatch (citation exists)
 - `2` — citation not found in A2AJ
 
-Run every entry. Tally results.
+Run every entry. **Classify each failure by type** based on the exit code AND the stderr message:
 
-**Abort rule:** if more than 2 entries fail on the FIRST audit pass, set `verdict: "abort"`. Do NOT request revision. The draft is fundamentally hallucinating; further loops won't fix it. Dump diagnostics and stop.
+- **Exit 2 = `fabricatedCitation`** — the case doesn't exist in A2AJ. The Synthesizer made it up (or it's a real case outside the corpus, which is functionally the same problem for our purposes). Hard fail.
+- **Exit 1 with stderr containing `PARAGRAPH_NOT_FOUND` = `paragraphMismatch`** — the case exists in A2AJ, but the cited paragraph number doesn't appear in the source text. Numbering mismatch (often happens with SCC cases where headnote/dispositions affect numbering between sources). **Recoverable** by routing the failing citations back to the Reader for re-fetch and re-extraction.
+- **Exit 1 with stderr containing `QUOTE_NOT_FOUND_AT_PARA` = `misquote`** — the case and paragraph exist, but the submitted quote substring isn't present. The Synthesizer drew on memory rather than the Reader's verbatim extraction. **Recoverable** by routing back to the Reader to re-extract the actual paragraph contents.
+
+**Abort rule (refined):** abort ONLY if `fabricatedCitation` count > 2 on the FIRST audit pass. Pure `paragraphMismatch` and `misquote` failures do NOT trigger abort — they trigger a Reader re-do, because they're routing-fixable, not hallucination.
 
 ## Phase 2 — LLM critique (only after Phase 1 passes, or after a revision)
 
@@ -41,9 +45,14 @@ Be a hostile reader. The Synthesizer's job is to draft; yours is to find what's 
 
 ## Verdict logic
 
-- Phase 1 fails > 2 (first audit pass) → `verdict: "abort"`
-- Phase 1 fails ≤ 2 OR Phase 2 has any non-trivial issues → `verdict: "revise"`
-- Phase 1 clean AND Phase 2 has only minor/style issues → `verdict: "pass"`
+Three fields together: `verdict`, `routeBack`, and (if routing back to Reader) `failingCitationsForReader`.
+
+- `fabricatedCitation` count > 2 on first audit → `verdict: "abort"`, `routeBack: null`. Stop.
+- Any `paragraphMismatch` or `misquote` failures → `verdict: "revise"`, `routeBack: "reader"`, `failingCitationsForReader: [<unique citations from those failures>]`. The orchestrator will spawn the Reader on those specific citations to re-extract verified paragraphs, then re-Synthesize, then re-Audit (final round).
+- Phase 1 fully clean AND Phase 2 has substantive issues (weak claims, overreach, missing authority, treatment errors, cross-statute confusion) → `verdict: "revise"`, `routeBack: "synthesizer"`. The orchestrator will pass the Phase 2 issues + any `unmetNeeds` (from the synthesizer's prior output) back for revision.
+- Phase 1 fully clean AND Phase 2 has only minor/style issues OR no issues → `verdict: "pass"`, `routeBack: null`.
+
+If a single audit pass shows BOTH fabrications-but-≤2 AND paragraph mismatches, treat it as Reader-routable (`routeBack: "reader"`) — Reader-redo on the recoverable ones, and the Synthesizer is told in revisionNotes to drop the fabricated ones outright.
 
 ## Your output
 
@@ -58,8 +67,11 @@ Output ONLY valid JSON:
     "fabricatedCitations": [
       { "citation": "2019 BCCA 999", "reason": "exit 2 from verify.js — citation not in A2AJ" }
     ],
+    "paragraphMismatches": [
+      { "citation": "2003 SCC 24", "paragraph": 81, "reason": "exit 1 PARAGRAPH_NOT_FOUND — paragraph not located in source" }
+    ],
     "misquotes": [
-      { "citation": "2014 SCC 71", "paragraph": 33, "quote": "submitted text", "reason": "exit 1 — quote substring not present at paragraph" }
+      { "citation": "2014 SCC 71", "paragraph": 33, "quote": "submitted text", "reason": "exit 1 QUOTE_NOT_FOUND_AT_PARA — substring not present at paragraph" }
     ]
   },
   "phase2": {
@@ -70,7 +82,9 @@ Output ONLY valid JSON:
     "crossStatuteIssues": [{ "claim": "...", "issue": "..." }]
   },
   "verdict": "pass" | "revise" | "abort",
-  "revisionNotes": "<plain-text instructions to the Synthesizer if verdict==revise>"
+  "routeBack": "reader" | "synthesizer" | null,
+  "failingCitationsForReader": ["2003 SCC 24", "2009 SCC 10"],
+  "revisionNotes": "<plain-text instructions to whoever you're routing back to>"
 }
 ```
 
