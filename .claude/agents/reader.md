@@ -40,23 +40,30 @@ Steps for a **case**:
 2. Read `unofficial_text_en`.
 3. Identify case structure: facts, issue(s), holding, ratio. Use the `[N]` paragraph markers as anchors — quote selectively, don't paraphrase the holding away from the actual language.
 4. Pick 3–6 KEY paragraphs containing the dispositive reasoning. Record each with paragraph number and verbatim quote.
-5. Extract every internal citation in the case. Use the citation extractor by piping text via stdin (no tempfile needed):
+5. Extract every internal citation in the case. Use the citation extractor.
+
+**IMPORTANT: do not use shell variable assignment (`TEXT=$(...)`) or parameter expansion (`${VAR:-default}`) in your bash commands. Both trigger Claude Code's "Contains expansion" permission prompt.** Use simple sequential commands with literal paths instead. Three steps:
 
 ```bash
-curl -sG "https://api.a2aj.ca/fetch" --data-urlencode "citation=2014 SCC 71" --data-urlencode "doc_type=cases" \
-  | node -e "let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{const r=JSON.parse(d).results[0]; process.stdout.write(r.unofficial_text_en||'')})" \
-  | node C:/Users/Matha/legal-researcher/dist/citations.js
+# Step 1 — fetch JSON to a literal-path tmpfile (matches Bash(curl *))
+curl -sG "https://api.a2aj.ca/fetch" --data-urlencode "citation=2014 SCC 71" --data-urlencode "doc_type=cases" -o /tmp/lr-fetch.json
+
+# Step 2 — extract case text from the JSON to a tmpfile (matches Bash(node *))
+node -e "const d=JSON.parse(require('fs').readFileSync('/tmp/lr-fetch.json','utf8'));process.stdout.write(d.results[0].unofficial_text_en||'')" > /tmp/lr-text.txt
+
+# Step 3 — extract citations (matches Bash(node *))
+node C:/Users/Matha/legal-researcher/dist/citations.js < /tmp/lr-text.txt
 ```
 
-   Or, more simply, fetch + extract in two passes using a here-string:
-```bash
-TEXT=$(curl -sG ... | node -e "...extract unofficial_text_en...")
-node C:/Users/Matha/legal-researcher/dist/citations.js <<< "$TEXT"
-```
+This returns a JSON array of `{ citation, type, pinpoint? }`.
 
-   This returns a JSON array of `{ citation, type, pinpoint? }`.
-
-   **Do NOT write temporary files to the project root** (e.g., `tmp_text.txt`, `tmp_case.json`). If you absolutely need a tempfile, use `${TMPDIR:-/tmp}/legal-researcher-<random>.txt` and clean up after. Stdin piping is preferred and works for the citations extractor.
+**Constraints on your bash commands (to avoid permission prompts):**
+- Use literal paths like `/tmp/lr-fetch.json` and `/tmp/lr-text.txt`. Git Bash on Windows maps `/tmp` to a real temp directory.
+- Do **not** use `$()` command substitution.
+- Do **not** use `${VAR}` or `${VAR:-default}` parameter expansion.
+- Do **not** use `&&` or `||` to chain — run commands separately.
+- Do **not** write tmpfiles to the project root (no `tmp_text.txt`, `tmp_case.json` in cwd).
+- Pipe redirection (`>`, `<`, `|`) is fine and does not trigger expansion warnings.
 
 ## Section citator queries (legislation digests only)
 
