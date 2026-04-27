@@ -2,11 +2,12 @@
 // Exposes typed tools so agents never need Bash to hit the API or wrangle tempfiles.
 //
 // Tools (exposed to agents as mcp__a2aj__<name>):
-//   search             — search cases or laws
-//   fetch              — fetch one case/law (returns metadata + full text)
-//   locate_in_case     — fetch a case and pinpoint paragraph(s) containing a substring
-//   extract_citations  — run the deterministic citation extractor on text
-//   verify_quote       — verify a paragraph quote against the source case
+//   search                — search cases or laws
+//   fetch                 — fetch one case/law (returns metadata + full text)
+//   locate_in_case        — fetch a case and pinpoint paragraph(s) containing a substring
+//   extract_citations     — run the deterministic citation extractor on text
+//   verify_quote          — verify a paragraph quote against the source case
+//   summarize_treatment   — aggregate per-target classifier output into a status flag
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -15,6 +16,7 @@ import { z } from 'zod';
 import { fetchCase, searchCases, type DocType } from './a2aj.js';
 import { extractCitations } from './citations.js';
 import { extractParagraph, verifyQuote } from './verify.js';
+import { summarizeTreatment, type TreatmentRecord } from './treatment-summary.js';
 
 const docTypeEnum = z.enum(['cases', 'laws']);
 const searchTypeEnum = z.enum(['full_text', 'name']);
@@ -250,6 +252,43 @@ export function buildServer(): McpServer {
         });
       }
       return asText({ ok: true, citation, para });
+    },
+  );
+
+  const treatmentLabelEnum = z.enum([
+    'followed',
+    'applied',
+    'distinguished',
+    'criticized',
+    'neutral',
+    'overruled',
+    'reversed',
+  ]);
+
+  const treatmentRecordSchema = z.object({
+    targetCase: z.string(),
+    citingCase: z.string(),
+    citingCaseName: z.string().optional(),
+    paragraph: z.number().int().nonnegative(),
+    label: treatmentLabelEnum,
+    evidenceQuote: z.string(),
+  });
+
+  server.registerTool(
+    'summarize_treatment',
+    {
+      description:
+        'Aggregate TreatmentClassifier output for ONE target case into a status flag the Synthesizer can act on. Returns { status, statusBasis, counts, negativeSignals }. status is one of: good_law, questioned, overruled, reversed, unknown. Status logic: any reversed → reversed; any overruled → overruled; any criticized from an appellate court (or ≥2 from trial) → questioned; otherwise good_law. Pass the full treatments[] from the classifier — the function filters to entries matching target_case itself.',
+      inputSchema: {
+        target_case: z.string().describe('The cited (target) case neutral citation.'),
+        treatments: z.array(treatmentRecordSchema).describe(
+          'The full treatments[] array from one or more TreatmentClassifier outputs. Records whose targetCase does not match target_case are ignored.',
+        ),
+      },
+    },
+    async ({ target_case, treatments }) => {
+      const summary = summarizeTreatment(target_case, treatments as TreatmentRecord[]);
+      return asText(summary);
     },
   );
 

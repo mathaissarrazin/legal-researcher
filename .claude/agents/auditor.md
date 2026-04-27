@@ -38,7 +38,10 @@ When you do run Phase 2, identify against the underlying material:
 - **Weak claims** — propositions with thin or off-point support
 - **Overreach** — claims broader than the cited authority supports
 - **Missing authority** — obvious leading cases that should be cited but aren't (limited to cases that appear in the input material)
-- **Treatment errors** — misrepresenting how a case has been treated by subsequent jurisprudence
+- **Treatment errors** — misrepresenting how a case has been treated by subsequent jurisprudence. Your input includes `treatmentSummaries[]` from the orchestrator — one entry per leading case with a deterministic `status` field. **A `treatmentError` is generated automatically whenever:**
+  - The memo cites a case whose summary `status` is `overruled` or `reversed`, AND the memo does not explicitly acknowledge that status (e.g., "since overruled in X" / "reversed on appeal in X"). Cite the specific paragraph in the memo where the unflagged citation appears.
+  - The memo cites a case whose summary `status` is `questioned` and the Application section makes no acknowledgment of the criticism (the synthesizer's hard rule requires one).
+  These are not judgment calls — match each `claimCitationMap` citation against the `treatmentSummaries[]` and flag every miss.
 - **Cross-statute confusion** — blending provincial and federal frameworks where they should be distinguished
 
 Be a hostile reader. The Synthesizer's job is to draft; yours is to find what's wrong.

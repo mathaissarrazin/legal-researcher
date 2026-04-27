@@ -75,15 +75,23 @@ Identify the strong on-point cases from the digest pool — typically 2–4 lead
 
 Spawn one `treatment-classifier` subagent **per target case, in parallel** (single message, multiple Agent calls). Each returns a `treatments[]` array for its one target. Concatenate the arrays into a single combined treatments list.
 
+### Step 4a — Treatment summaries (orchestrator-side)
+
+For **each target case** the TreatmentClassifier processed, call `mcp__a2aj__summarize_treatment` with `{ target_case: "<citation>", treatments: <combined treatments[] from Step 4> }`. Each call returns `{ targetCase, status, statusBasis, counts, negativeSignals }`.
+
+Collect these into a `treatmentSummaries: [...]` array — one summary per target. The `status` is `good_law | questioned | overruled | reversed | unknown`.
+
+These summaries flow into the Synthesizer's input alongside the raw `treatments[]`. They are how the Synthesizer learns, deterministically and at a glance, that a leading case is no longer good law before drafting around it.
+
 ### Step 5 — Synthesizer (round 1)
 
-Spawn the `synthesizer` subagent. Input: planner output (including `crossStatuteScope`), reader digests **including any statute digests** (the Synthesizer should open the Rule section with the statute when present), treatment classifications, secondary-source doctrinal framing.
+Spawn the `synthesizer` subagent. Input: planner output (including `crossStatuteScope`), reader digests **including any statute digests** (the Synthesizer should open the Rule section with the statute when present), treatment classifications, **the `treatmentSummaries[]` from Step 4a**, secondary-source doctrinal framing.
 
 Returns `{ memo, claimCitationMap, unmetNeeds }`.
 
 ### Step 6 — Auditor (round 1)
 
-Spawn the `auditor` subagent. Input: synthesizer's `memo` and `claimCitationMap`.
+Spawn the `auditor` subagent. Input: synthesizer's `memo`, `claimCitationMap`, and the `treatmentSummaries[]` from Step 4a (the auditor uses these for Phase 2 treatment-error checks).
 
 Returns audit report with `verdict: pass | revise | abort`.
 
@@ -143,6 +151,7 @@ Print to the user:
   - Step 3 (Reader Phase 1): one `reader` per item (case or legislation) — N parallel calls.
   - Step 3a (Reader Phase 2): one `reader` per section-citator-discovered case — parallel.
   - Step 4 (TreatmentClassifier): one `treatment-classifier` per target case — parallel.
+  - Step 4a (Treatment summaries): `mcp__a2aj__summarize_treatment` once per target — orchestrator-side, not a subagent.
   - Step 7a (Reader-redo): one `reader` per failing citation — parallel.
 - **Capture all stage outputs** so the finalizer can write the sidecar.
 - **Maximum 2 audit rounds total.** No third try.

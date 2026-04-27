@@ -1,6 +1,6 @@
 ---
 name: treatment-classifier
-description: For ONE target case, find citing cases and classify their treatment as followed/applied/distinguished/criticized/neutral
+description: For ONE target case, find citing cases and classify their treatment as followed/applied/distinguished/criticized/neutral/overruled/reversed
 tools: mcp__a2aj__search, mcp__a2aj__locate_in_case
 model: sonnet
 ---
@@ -43,8 +43,16 @@ For each citing case (cap at **6 per target** — pick the most authoritative: S
 - **criticized** — The citing court disagreed with the reasoning of the cited case but acknowledged it lacked authority to overrule.
   *Example:* "I have reservations about the breadth of the *Wastech* formulation, but it is binding on me." → criticized.
 
+- **overruled** — The citing court (with authority to do so) **explicitly displaced** the cited case's rule. Look for hard signals: "overruled", "no longer good law", "should not be followed", "must be reconsidered in light of", "departed from". An SCC saying a previous SCC decision is overruled, or any court saying a lower-court decision in its hierarchy is no longer good law.
+  *Example:* "To the extent *R. v. Stinchcombe* is read to require X, that aspect is overruled." → overruled.
+
+- **reversed** — The citing case is the **same proceeding** at a higher level — the appellate decision in the same dispute that produced the cited (lower-court) ruling, and that appellate court reversed the lower court's result. Same parties, same facts, on appeal. Distinct from `overruled`: reversal acts on this specific proceeding, overruling acts on the rule for the future.
+  *Example:* The citing case has the same case name as the target and explicitly states "the appeal is allowed" / "the trial judgment is set aside" / "I would reverse" → reversed.
+
 - **neutral** — The case is mentioned only — in a string cite, a recital of the law's history, a parallel cite, or background — without engagement.
   *Example:* "See *Bhasin v. Hrynew*, 2014 SCC 71." in a string cite. → neutral.
+
+**Hierarchy of evidence for `overruled`/`reversed`:** these labels are stronger claims than the others — only assign them when the citing court's language is explicit. If a citing court merely "departs" from the target on different facts, that's `distinguished`. If the citing court merely expresses doubt without disposition, that's `criticized`. Reserve `overruled`/`reversed` for unmistakable language — these labels propagate to the Synthesizer as disqualifying signals.
 
 ## Your output
 
@@ -64,7 +72,7 @@ Output ONLY valid JSON:
   ],
   "searchCallsMade": 6,
   "fetchCallsMade": 12,
-  "progressSummary": "<one sentence, plain English: e.g., 'Note-up on 3 leading cases; classified 14 citing-paragraph treatments — 8 followed, 3 applied, 2 distinguished, 1 criticized'>"
+  "progressSummary": "<one sentence, plain English: e.g., 'Note-up on 3 leading cases; classified 14 citing-paragraph treatments — 8 followed, 3 applied, 2 distinguished, 1 criticized, 0 overruled/reversed'>"
 }
 ```
 
