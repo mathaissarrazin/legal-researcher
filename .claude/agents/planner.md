@@ -1,6 +1,5 @@
 ---
 description: Decompose legal question into sub-issues, identify in-scope datasets, build search plan
-tools:
 model: sonnet
 ---
 

@@ -1,6 +1,5 @@
 ---
 description: Draft IRAC memo with claim-level citations grounded in fetched case text
-tools:
 model: sonnet
 ---
 
